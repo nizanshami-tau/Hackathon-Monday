@@ -68,7 +68,7 @@ func (s *WhatsappService) SendWhatsappQR(w http.ResponseWriter, req *http.Reques
 	user, ok := s.sessionToUser.Load(uuid.MustParse(sessionID))
 	if !ok {
 		clientLog.Errorf("Failed to find sessionid in mapping")
-		w.WriteHeader(500)
+		w.WriteHeader(400)
 		return
 	}
 
@@ -265,6 +265,32 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 	w.WriteHeader(302)
 }
 
+func (s *WhatsappService) ListGroups(w http.ResponseWriter, req *http.Request) {
+	listGroupsLog := waLog.Stdout("OAuth", "DEBUG", true)
+	sessionCookie, err := req.Cookie("sessionid")
+	if err != nil {
+		listGroupsLog.Errorf("Failed to get request session id cookie:", err)
+		w.WriteHeader(400)
+		return
+	}
+
+	sessionID := sessionCookie.Value
+	user, ok := s.sessionToUser.Load(uuid.MustParse(sessionID))
+	if !ok {
+		listGroupsLog.Errorf("Failed to find sessionid in mapping")
+		w.WriteHeader(400)
+		return
+	}
+
+	client := user.(*User).WSClient
+	groups, err := client.GetJoinedGroups()
+	if err != nil {
+		listGroupsLog.Errorf("Failed to fetch groups: %v", err)
+		w.WriteHeader(500)
+		return
+	}
+}
+
 func main() {
 	s, err := NewWhatsappService()
 	if err != nil {
@@ -276,6 +302,7 @@ func main() {
 	public.HandleFunc(SVC_PREFIX+"/qr-callback", s.QrCallback)
 	public.HandleFunc(SVC_PREFIX+"/start", s.Start)
 	public.HandleFunc(SVC_PREFIX+"/oauth/callback", s.OAuthCallback)
+	public.HandleFunc(SVC_PREFIX+"/listgroups", s.ListGroups)
 
 	http.ListenAndServe(":3000", public)
 }
