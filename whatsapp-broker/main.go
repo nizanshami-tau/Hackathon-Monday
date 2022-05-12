@@ -134,13 +134,13 @@ func (s *WhatsappService) SendWhatsappQR(w http.ResponseWriter, req *http.Reques
 			if (response.status != 200) {
 				console.log(response.statusText);
 			} else {
-				window.location.replace("/foobar?id=%s");
+				window.location.replace("/");
 			}
 		}
 		subscribe();
 	</script>
 </html>`,
-			imgBuf.String(), id.String(), id.String())))
+			imgBuf.String(), id.String())))
 
 		return
 	} else {
@@ -265,6 +265,11 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 	w.WriteHeader(302)
 }
 
+type GroupOption struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+}
+
 func (s *WhatsappService) ListGroups(w http.ResponseWriter, req *http.Request) {
 	listGroupsLog := waLog.Stdout("OAuth", "DEBUG", true)
 	sessionCookie, err := req.Cookie("sessionid")
@@ -283,12 +288,30 @@ func (s *WhatsappService) ListGroups(w http.ResponseWriter, req *http.Request) {
 	}
 
 	client := user.(*User).WSClient
-	_, err = client.GetJoinedGroups()
+	groups, err := client.GetJoinedGroups()
 	if err != nil {
 		listGroupsLog.Errorf("Failed to fetch groups: %v", err)
 		w.WriteHeader(500)
 		return
 	}
+
+	options := make([]GroupOption, len(groups))
+	for i, group := range groups {
+		options[i] = GroupOption{
+			Label: group.Name,
+			Value: group.Topic,
+		}
+	}
+
+	groupsJSON, err := json.Marshal(options)
+	if err != nil {
+		listGroupsLog.Errorf("Failed to fetch groups: %v", err)
+		w.WriteHeader(500)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	w.Write(groupsJSON)
 }
 
 func main() {
