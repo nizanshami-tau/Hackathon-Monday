@@ -175,7 +175,7 @@ func (s *WhatsappService) Start(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 
-	url := "https://auth.monday.com/oauth2/authorize?" + string(marshaled)
+	url := "https://auth.monday.com/oauth2/authorize?" + url.QueryEscape(string(marshaled))
 	w.Header().Set("Set-Cookie", fmt.Sprintf("monday_auth_state=%s", cookie))
 	w.Header().Set("Location", url)
 	w.WriteHeader(302)
