@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
@@ -188,7 +189,6 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 	form.Add("client_id", CLIENT_ID)
 	form.Add("client_secret", CLIENT_SECRET)
 	form.Add("code", code)
-	oauthLog.Infof("CATCHME 2 %+v", form)
 	resp, err := http.PostForm("https://auth.monday.com/oauth2/token", form)
 	if err != nil {
 		oauthLog.Errorf("Monday auth returned error: %v", err)
@@ -203,7 +203,30 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	oauthLog.Infof("CATCHME %s", bodyStr)
+	var body struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		TokenType    string `json:"token_type"`
+		Scope        string `json:"scope"`
+	}
+
+	err = json.Unmarshal(bodyStr, &body)
+	if err != nil {
+		oauthLog.Errorf("Unmarshal monday json response error: %v", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	query := url.Values{}
+	query.Set("status", "success")
+	query.Set("access_token", body.AccessToken)
+	query.Set("refresh_token", body.RefreshToken)
+	query.Set("token_type", body.TokenType)
+	query.Set("scope", body.Scope)
+
+	url := REDIRECT_PATH + "/whatsapp-qr?" //+ query.Encode()
+	w.Header().Set("Location", url)
+	w.WriteHeader(302)
 }
 
 func main() {
