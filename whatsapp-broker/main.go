@@ -130,7 +130,7 @@ func (s *WhatsappService) SendWhatsappQR(w http.ResponseWriter, req *http.Reques
 	</body>
 	<script>
 		async function subscribe() {
-			let response = await fetch("/qr-callback?id=%s");
+			let response = await fetch("/gosvc/qr-callback?id=%s");
 			if (response.status != 200) {
 				console.log(response.statusText);
 			} else {
