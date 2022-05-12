@@ -9,7 +9,7 @@ const SelectGroups = () => {
      }, []);
     const fetchData = async () => {
        let response = await (
-         await fetch("https://sunday.sviry.net/groups2.json")
+         await fetch("https://sunday.sviry.net/gosvc/listgroups")
        ).json();
        setGroups(response);
      };
