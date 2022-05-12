@@ -1,0 +1,22 @@
+{
+    "groups": [
+        {
+            "name": "os"
+        },
+        {
+            "name": "linar algbra"
+        },
+        {
+            "name": "calules I"
+        },
+        {
+            "name": "calules II"
+        },
+        {
+            "name": "calules III"
+        },
+        {
+            "name": "algo"
+        }
+    ]
+}
