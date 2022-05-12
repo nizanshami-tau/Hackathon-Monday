@@ -4,13 +4,16 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	waLog "go.mau.fi/whatsmeow/util/log"
+	"io"
 	"net/http"
+	"net/url"
 	"os/exec"
 	"strings"
 	"sync"
@@ -19,6 +22,9 @@ import (
 
 // const DB_PATH string = "/var/local/whatsapp-broker/app.db"
 const DB_PATH string = "/tmp/myapp.db"
+const REDIRECT_PATH string = "https://sunday.sviry.net"
+const CLIENT_ID string = "63096c5c98c7077e0a8db84a4a21b299"
+const CLIENT_SECRET string = "90d0e45f578ec3d092c4806674dd4033"
 
 type WhatsappService struct {
 	container *sqlstore.Container
@@ -151,6 +157,64 @@ func (s *WhatsappService) QrCallback(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
+func (s *WhatsappService) Start(w http.ResponseWriter, req *http.Request) {
+	//startLog := waLog.Stdout("Start", "DEBUG", true)
+	cookie := "abcd12345"
+
+	marshaled, err := json.Marshal(struct {
+		ClientID    string `json:"client_id"`
+		RedirectURI string `json:"redirect_uri"`
+		State       string `json:"state"`
+	}{
+		ClientID:    "63096c5c98c7077e0a8db84a4a21b299",
+		RedirectURI: REDIRECT_PATH + "/oauth/callback",
+		State:       cookie,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	url := "https://auth.monday.com/oauth2/authorize?" + string(marshaled)
+	w.Header().Set("Set-Cookie", fmt.Sprintf("monday_auth_state=%s", cookie))
+	w.Header().Set("Location", url)
+	w.WriteHeader(302)
+	return
+}
+
+func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request) {
+	oauthLog := waLog.Stdout("OAuth", "DEBUG", true)
+	code := req.URL.Query().Get("code")
+	state := req.URL.Query().Get("state")
+	storedState, err := req.Cookie("monday_auth_state")
+	if err != nil {
+		oauthLog.Errorf("Request did not have monday_auth_state cookie!")
+		w.WriteHeader(400)
+		return
+	}
+
+	form := url.Values{}
+	form.Add("redirect_uri", REDIRECT_PATH+"/oauth2/token")
+	form.Add("client_id", CLIENT_ID)
+	form.Add("client_secret", CLIENT_SECRET)
+	form.Add("code", code)
+	resp, err := http.PostForm("https://auth.monday.com/oauth2/token", form)
+	if err != nil {
+		oauthLog.Errorf("Monday auth returned error: %v", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	bodyStr, err := io.ReadAll(resp.Body)
+	if err != nil {
+		oauthLog.Errorf("Failed to read Monday auth response body: %v", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	oauthLog.Infof("CATCHME %s", bodyStr)
+}
+
 func main() {
 	s, err := NewWhatsappService()
 	if err != nil {
@@ -160,6 +224,8 @@ func main() {
 	public := http.NewServeMux()
 	public.HandleFunc("/whatsapp-qr", s.SendWhatsappQR)
 	public.HandleFunc("/qr-callback", s.QrCallback)
+	public.HandleFunc("/start", s.Start)
+	public.HandleFunc("/oauth/callback", s.OAuthCallback)
 
 	http.ListenAndServe(":3000", public)
 }
