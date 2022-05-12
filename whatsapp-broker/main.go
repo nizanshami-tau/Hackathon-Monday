@@ -22,7 +22,7 @@ import (
 
 // const DB_PATH string = "/var/local/whatsapp-broker/app.db"
 const DB_PATH string = "/tmp/myapp.db"
-const REDIRECT_PATH string = "https://sunday.sviry.net"
+const REDIRECT_PATH string = "https://sunday.sviry.net/gosvc"
 const CLIENT_ID string = "63096c5c98c7077e0a8db84a4a21b299"
 const CLIENT_SECRET string = "90d0e45f578ec3d092c4806674dd4033"
 
