@@ -161,20 +161,6 @@ func (s *WhatsappService) Start(w http.ResponseWriter, req *http.Request) {
 	//startLog := waLog.Stdout("Start", "DEBUG", true)
 	cookie := "abcd12345"
 
-	marshaled, err := json.Marshal(struct {
-		ClientID    string `json:"client_id"`
-		RedirectURI string `json:"redirect_uri"`
-		State       string `json:"state"`
-	}{
-		ClientID:    CLIENT_ID,
-		RedirectURI: REDIRECT_PATH + "/oauth/callback",
-		State:       cookie,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
 	query := url.Values{}
 	query.Set("client_id", CLIENT_ID)
 	query.Set("redirect_uri", REDIRECT_PATH+"/oauth/callback")
