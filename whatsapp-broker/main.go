@@ -22,7 +22,8 @@ import (
 
 // const DB_PATH string = "/var/local/whatsapp-broker/app.db"
 const DB_PATH string = "/tmp/myapp.db"
-const REDIRECT_PATH string = "https://sunday.sviry.net/gosvc"
+const SVC_PREFIX string = "/gosvc"
+const REDIRECT_PATH string = "https://sunday.sviry.net" + SVC_PREFIX
 const CLIENT_ID string = "63096c5c98c7077e0a8db84a4a21b299"
 const CLIENT_SECRET string = "90d0e45f578ec3d092c4806674dd4033"
 
@@ -268,10 +269,10 @@ func main() {
 	}
 
 	public := http.NewServeMux()
-	public.HandleFunc("/whatsapp-qr", s.SendWhatsappQR)
-	public.HandleFunc("/qr-callback", s.QrCallback)
-	public.HandleFunc("/start", s.Start)
-	public.HandleFunc("/oauth/callback", s.OAuthCallback)
+	public.HandleFunc(SVC_PREFIX+"/whatsapp-qr", s.SendWhatsappQR)
+	public.HandleFunc(SVC_PREFIX+"/qr-callback", s.QrCallback)
+	public.HandleFunc(SVC_PREFIX+"/start", s.Start)
+	public.HandleFunc(SVC_PREFIX+"/oauth/callback", s.OAuthCallback)
 
 	http.ListenAndServe(":3000", public)
 }
