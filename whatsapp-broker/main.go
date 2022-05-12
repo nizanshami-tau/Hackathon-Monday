@@ -181,13 +181,15 @@ func (s *WhatsappService) QrCallback(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *WhatsappService) Start(w http.ResponseWriter, req *http.Request) {
-	//startLog := waLog.Stdout("Start", "DEBUG", true)
+	startLog := waLog.Stdout("Start", "DEBUG", true)
 	cookie := "abcd12345"
 
 	query := url.Values{}
 	query.Set("client_id", CLIENT_ID)
 	query.Set("redirect_uri", REDIRECT_PATH+"/oauth/callback")
 	query.Set("state", cookie)
+
+	startLog.Infof("CATCHME 1 %+v", query)
 
 	url := "https://auth.monday.com/oauth2/authorize?" + query.Encode()
 	w.Header().Set("Set-Cookie", fmt.Sprintf("monday_auth_state=%s", cookie))
@@ -212,6 +214,7 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 	form.Add("client_id", CLIENT_ID)
 	form.Add("client_secret", CLIENT_SECRET)
 	form.Add("code", code)
+	oauthLog.Infof("CATCHME 2 %+v", form)
 	resp, err := http.PostForm("https://auth.monday.com/oauth2/token", form)
 	if err != nil {
 		oauthLog.Errorf("Monday auth returned error: %v", err)
