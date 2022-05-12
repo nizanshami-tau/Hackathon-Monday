@@ -2,8 +2,18 @@ import React, { useState, useEffect } from "react";
 import { MultiSelect } from "react-multi-select-component";
 
 const SelectGroups = () => {
+    const [submitting, setSubmitting] = useState(false);
     const [selected, setSelected] = useState([]);
     const [groups, setGroups] = useState([]);
+    
+    const handleSubmit = event => {
+        event.preventDefault();
+       setSubmitting(true);
+    
+       setTimeout(() => {
+         setSubmitting(false);
+       }, 3000)
+    }
     useEffect(() => {
        fetchData();
      }, []);
@@ -24,7 +34,12 @@ const SelectGroups = () => {
                 onChange={setSelected}
                 labelledBy="Select"
             />
+
+            <form onSubmit={handleSubmit}>
+                <button type="submit">Submit</button>
+            </form>
         </div>
+        
     );
 };
 
