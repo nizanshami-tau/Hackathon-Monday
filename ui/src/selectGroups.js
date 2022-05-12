@@ -1,28 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MultiSelect } from "react-multi-select-component";
-import groupsJson from "./groups.json";
-
-
-const groups = (json)=>{
-    let i;
-    let result = [];
-    let arr = JSON.parse(json).groups;
-    for(i = 0;i < arr.length;i++){
-        result.push({ "label": arr[i].name, "value": arr[i].name})
-    }
-
-    return result;
-}
 
 const SelectGroups = () => {
     const [selected, setSelected] = useState([]);
+    const [groups, setGroups] = useState([]);
+    useEffect(() => {
+       fetchData();
+     }, []);
+    const fetchData = async () => {
+       let response = await (
+         await fetch("https://sunday.sviry.net/groups2.json")
+       ).json();
+       setGroups(response);
+     };
 
     return (
         <div>
             <h1>Select groups</h1>
             <pre>{JSON.stringify(selected)}</pre>
             <MultiSelect
-                options={ [{"label": "foo", "value": "bar"}] }
+                options={groups}
                 value={selected}
                 onChange={setSelected}
                 labelledBy="Select"
