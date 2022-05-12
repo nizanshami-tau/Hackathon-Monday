@@ -13,7 +13,6 @@ const groups = (json)=>{
 
     return result;
 }
-window.options = groups(groupsJson);
 
 const SelectGroups = () => {
     const [selected, setSelected] = useState([]);
@@ -23,7 +22,7 @@ const SelectGroups = () => {
             <h1>Select groups</h1>
             <pre>{JSON.stringify(selected)}</pre>
             <MultiSelect
-                options={window.options}
+                options={ [{"label": "foo", "value": "bar"}] }
                 value={selected}
                 onChange={setSelected}
                 labelledBy="Select"
