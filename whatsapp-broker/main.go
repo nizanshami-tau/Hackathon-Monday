@@ -184,7 +184,7 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 	//}
 
 	form := url.Values{}
-	form.Add("redirect_uri", REDIRECT_PATH+"/oauth2/token")
+	form.Add("redirect_uri", REDIRECT_PATH+"/oauth/token")
 	form.Add("client_id", CLIENT_ID)
 	form.Add("client_secret", CLIENT_SECRET)
 	form.Add("code", code)
