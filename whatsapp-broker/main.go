@@ -166,7 +166,7 @@ func (s *WhatsappService) Start(w http.ResponseWriter, req *http.Request) {
 		RedirectURI string `json:"redirect_uri"`
 		State       string `json:"state"`
 	}{
-		ClientID:    "63096c5c98c7077e0a8db84a4a21b299",
+		ClientID:    CLIENT_ID,
 		RedirectURI: REDIRECT_PATH + "/oauth/callback",
 		State:       cookie,
 	})
@@ -175,7 +175,12 @@ func (s *WhatsappService) Start(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 
-	url := "https://auth.monday.com/oauth2/authorize?" + url.QueryEscape(string(marshaled))
+	query := url.Values{}
+	query.Set("client_id", CLIENT_ID)
+	query.Set("redirect_uri", REDIRECT_PATH+"/oauth/callback")
+	query.Set("state", cookie)
+
+	url := "https://auth.monday.com/oauth2/authorize?" + query.Encode()
 	w.Header().Set("Set-Cookie", fmt.Sprintf("monday_auth_state=%s", cookie))
 	w.Header().Set("Location", url)
 	w.WriteHeader(302)
