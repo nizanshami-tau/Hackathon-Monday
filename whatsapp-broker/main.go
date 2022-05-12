@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
@@ -176,13 +175,13 @@ func (s *WhatsappService) Start(w http.ResponseWriter, req *http.Request) {
 func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request) {
 	oauthLog := waLog.Stdout("OAuth", "DEBUG", true)
 	code := req.URL.Query().Get("code")
-	state := req.URL.Query().Get("state")
-	storedState, err := req.Cookie("monday_auth_state")
-	if err != nil {
-		oauthLog.Errorf("Request did not have monday_auth_state cookie!")
-		w.WriteHeader(400)
-		return
-	}
+	//state := req.URL.Query().Get("state")
+	//storedState, err := req.Cookie("monday_auth_state")
+	//if err != nil {
+	//	oauthLog.Errorf("Request did not have monday_auth_state cookie!")
+	//	w.WriteHeader(400)
+	//	return
+	//}
 
 	form := url.Values{}
 	form.Add("redirect_uri", REDIRECT_PATH+"/oauth2/token")
