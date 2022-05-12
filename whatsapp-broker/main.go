@@ -26,10 +26,16 @@ const REDIRECT_PATH string = "https://sunday.sviry.net"
 const CLIENT_ID string = "63096c5c98c7077e0a8db84a4a21b299"
 const CLIENT_SECRET string = "90d0e45f578ec3d092c4806674dd4033"
 
+type User struct {
+	AccessToken string
+	WSClient    *whatsmeow.Client
+}
+
 type WhatsappService struct {
-	container *sqlstore.Container
-	logger    waLog.Logger
-	idToQr    sync.Map
+	container     *sqlstore.Container
+	logger        waLog.Logger
+	idToQr        sync.Map
+	sessionToUser sync.Map
 }
 
 func NewWhatsappService() (*WhatsappService, error) {
@@ -49,16 +55,34 @@ func (s *WhatsappService) SendWhatsappQR(w http.ResponseWriter, req *http.Reques
 	deviceStore := s.container.NewDevice()
 
 	clientLog := waLog.Stdout("Client", "DEBUG", true)
+
+	sessionCookie, err := req.Cookie("sessionid")
+	if err != nil {
+		clientLog.Errorf("Failed to get request session id cookie:", err)
+		w.WriteHeader(400)
+		return
+	}
+
+	sessionID := sessionCookie.Value
+	user, ok := s.sessionToUser.Load(uuid.MustParse(sessionID))
+	if !ok {
+		clientLog.Errorf("Failed to find sessionid in mapping")
+		w.WriteHeader(500)
+		return
+	}
+
 	client := whatsmeow.NewClient(deviceStore, clientLog)
 
 	qrCtx, _ := context.WithTimeout(context.Background(), 60*time.Second)
 	qrChan, _ := client.GetQRChannel(qrCtx)
-	err := client.Connect()
+	err = client.Connect()
 	if err != nil {
 		clientLog.Errorf("Connect error: %s", err)
 		w.WriteHeader(500)
 		return
 	}
+
+	user.(*User).WSClient = client
 
 	clientLog.Debugf("Waiting on qr channel")
 	evt := <-qrChan
@@ -79,9 +103,7 @@ func (s *WhatsappService) SendWhatsappQR(w http.ResponseWriter, req *http.Reques
 
 		id, err := uuid.NewRandom()
 		if err != nil {
-			clientLog.Errorf("Error generating id: '%s', %v, %v", evt.Code, err)
-			w.WriteHeader(500)
-			return
+			panic(err)
 		}
 
 		go func() {
@@ -224,6 +246,16 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 	query.Set("token_type", body.TokenType)
 	query.Set("scope", body.Scope)
 
+	sessionID, err := uuid.NewRandom()
+	if err != nil {
+		panic(err)
+	}
+
+	s.sessionToUser.LoadOrStore(sessionID, &User{
+		AccessToken: body.AccessToken,
+	})
+
+	w.Header().Set("Set-Cookie", fmt.Sprintf("sessionid=%s", sessionID.String()))
 	url := REDIRECT_PATH + "/whatsapp-qr?" //+ query.Encode()
 	w.Header().Set("Location", url)
 	w.WriteHeader(302)
