@@ -259,7 +259,7 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 		AccessToken: body.AccessToken,
 	})
 
-	w.Header().Set("Set-Cookie", fmt.Sprintf("sessionid=%s", sessionID.String()))
+	w.Header().Set("Set-Cookie", fmt.Sprintf("sessionid=%s; path=/", sessionID.String()))
 	url := REDIRECT_PATH + "/whatsapp-qr?" //+ query.Encode()
 	w.Header().Set("Location", url)
 	w.WriteHeader(302)
@@ -283,7 +283,7 @@ func (s *WhatsappService) ListGroups(w http.ResponseWriter, req *http.Request) {
 	}
 
 	client := user.(*User).WSClient
-	groups, err := client.GetJoinedGroups()
+	_, err = client.GetJoinedGroups()
 	if err != nil {
 		listGroupsLog.Errorf("Failed to fetch groups: %v", err)
 		w.WriteHeader(500)
