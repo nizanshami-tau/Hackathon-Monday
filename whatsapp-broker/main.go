@@ -438,13 +438,170 @@ mutation {
 			}
 
 			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
-		}
+
+			var result struct {
+				ID int `json:"id"`
+			}
+			err = json.Unmarshal(bodyBytes, &result)
+			if err != nil {
+				panic(err)
+			}
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_group (board_id: %d, group_name: "Exercises") {
+        id
+    }
+}
+`, result.ID),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_group (board_id: %d, group_name: "Tests") {
+        id
+    }
+}
+`, result.ID),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_group (board_id: %d, group_name: "Exercises") {
+        id
+    }
+}
+`, result.ID),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_group (board_id: %d, group_name: "Tests") {
+        id
+    }
+}
+`, result.ID),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_group (board_id: %d, group_name: "Tirgulim") {
+        id
+    }
+}
+`, result.ID),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_group (board_id: %d, group_name: "Lectures") {
+        id
+    }
+}
+`, result.ID),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
 		//for _, m := range msgArr {
 		//	//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
 		//	if err == nil {
 		//		chooseGroupsLog.Infof("CATCHME 5 %+v", data)
 		//	}
-		//}
+		}
 	}()
 }
 
