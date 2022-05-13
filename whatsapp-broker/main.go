@@ -617,7 +617,7 @@ mutation{
 					groupID := "exercises"
 					if strings.Contains(fname, "sol") {
 						groupID = "exercises"
-					} else if m.Message.Message.ImageMessage != nil  {
+					} else if m.Message.Message.ImageMessage != nil {
 						groupID = "tests"
 					} else if strings.Contains(fname, "2020") {
 						groupID = "tests"
@@ -627,9 +627,13 @@ mutation{
 					chooseGroupsLog.Infof("CATCHME 5 %+v", data)
 					ioutil.WriteFile(file+"/"+fname, data, 0600)
 					cmd := exec.Command("python3", "../monday_files.py", "--path", file+"/"+fname, "--file", fname, "--board-id", result.Data.CreateBoard.Id, "--group-id", groupID)
+					ob := bytes.Buffer{}
+					eb := bytes.Buffer{}
+					cmd.Stdout = &ob
+					cmd.Stdout = &eb
 					err := cmd.Run()
 					if err != nil {
-						userObj.WSClient.Log.Errorf("CATCHME 102 %+v", err)
+						userObj.WSClient.Log.Errorf("CATCHME 102 %+v %+v %+v", err, ob.String(), eb.String())
 					}
 				}
 			}
