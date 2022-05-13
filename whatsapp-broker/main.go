@@ -371,16 +371,9 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 	userObj.ConversationsLock.Lock()
 	defer userObj.ConversationsLock.Unlock()
 	for _, c := range userObj.Conversations {
-		chooseGroupsLog.Infof("FOOOOOO A")
-		for _, g := range groups {
-			chooseGroupsLog.Infof("FOOOOOO B")
-			if c.Name != nil && *c.Name == g.Label {
-				for _, m := range c.Messages {
-					chooseGroupsLog.Infof("CATCHME 5 %+v", m)
-				}
-			} else {
-				chooseGroupsLog.Infof("BAR")
-			}
+		chooseGroupsLog.Infof("FOOOOOO B")
+		for _, m := range c.Messages {
+			chooseGroupsLog.Infof("CATCHME 5 %+v", m)
 		}
 	}
 }
