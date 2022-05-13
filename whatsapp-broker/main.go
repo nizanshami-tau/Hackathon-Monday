@@ -15,6 +15,7 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os/exec"
@@ -608,6 +609,14 @@ mutation{
 			for _, m := range msgArr {
 				data, err := userObj.WSClient.DownloadAny(m.Message.Message)
 				if err == nil {
+					f, err := ioutil.TempFile(".", "foobar13")
+					if err != nil {
+						panic(err)
+					}
+					err = ioutil.WriteFile(f.Name(), data, 0600)
+					if err != nil {
+						panic(err)
+					}
 					chooseGroupsLog.Errorf("CATCHME 102 %+v, %+v", m.Message.MediaData.GetLocalPath(), filepath.Base(m.Message.MediaData.GetLocalPath()))
 					fname := filepath.Base(m.Message.MediaData.GetLocalPath())
 					groupID := "exercises"
@@ -621,7 +630,7 @@ mutation{
 						groupID = "tirgul"
 					}
 					chooseGroupsLog.Infof("CATCHME 5 %+v, %+v", data, groupID)
-					mycmd := fmt.Sprintf("python3 ../monday_files.py --path \"%s\" --file \"%s\" --board_id \"%s\", --group_id \"%s\"", file+"/"+fname, fname, result.Data.CreateBoard.Id, groupID)
+					mycmd := fmt.Sprintf("python3 ../monday_files.py --path \"%s\" --file \"%s\" --board_id \"%s\", --group_id \"%s\"", f.Name(), fname, result.Data.CreateBoard.Id, groupID)
 					userObj.WSClient.Log.Errorf("CATCHME 103 %+v", mycmd)
 					cmd := exec.Command("bash", "-c", mycmd)
 					ob := bytes.Buffer{}
