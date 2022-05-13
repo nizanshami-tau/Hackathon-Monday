@@ -626,7 +626,7 @@ mutation{
 					}
 					chooseGroupsLog.Infof("CATCHME 5 %+v", data)
 					ioutil.WriteFile(file+"/"+fname, data, 0600)
-					cmd := exec.Command("python", "../monday_files.py", "--path", file+"/"+fname, "--file", fname, "--board-id", result.Data.CreateBoard.Id, "--group-id", groupID)
+					cmd := exec.Command("python3", "../monday_files.py", "--path", file+"/"+fname, "--file", fname, "--board-id", result.Data.CreateBoard.Id, "--group-id", groupID)
 					cmd.Run()
 				}
 			}
