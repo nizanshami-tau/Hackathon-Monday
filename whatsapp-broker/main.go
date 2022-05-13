@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -78,6 +79,7 @@ func (s *WhatsappService) SendWhatsappQR(w http.ResponseWriter, req *http.Reques
 
 	client := whatsmeow.NewClient(deviceStore, clientLog)
 	client.AddEventHandler(func(evt interface{}) {
+		client.Log.Infof("CATCHME 4 %v", reflect.TypeOf(evt))
 		if hs, ok := evt.(events.HistorySync); ok {
 			u := user.(*User)
 			u.ConversationsLock.Lock()
