@@ -12,7 +12,7 @@ const SelectGroups = () => {
             Headers :{
                 'Content-Type': 'application/json'
             },
-            body : selected
+            body : JSON.stringify(selected)
             });
 
             window.location.href = "/loading.html";
