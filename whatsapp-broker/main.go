@@ -431,12 +431,12 @@ mutation {
 
 			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
 		}
-		for _, m := range msgArr {
-			//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
-			if err == nil {
-				chooseGroupsLog.Infof("CATCHME 5 %+v", data)
-			}
-		}
+		//for _, m := range msgArr {
+		//	//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
+		//	if err == nil {
+		//		chooseGroupsLog.Infof("CATCHME 5 %+v", data)
+		//	}
+		//}
 	}()
 }
 
