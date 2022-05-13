@@ -576,6 +576,33 @@ mutation {
 			if err != nil {
 				panic(err)
 			}
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation{
+  create_column(board_id: %s, title:"Files", description: "files", column_type:file) {
+    id
+    title
+    description 
+  }
+}
+`, result.Data.CreateBoard.Id),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
 			//for _, m := range msgArr {
 			//	//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
 			//	if err == nil {
