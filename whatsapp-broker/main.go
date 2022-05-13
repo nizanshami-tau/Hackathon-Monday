@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types/events"
@@ -190,6 +191,28 @@ func (s *WhatsappService) QrCallback(w http.ResponseWriter, req *http.Request) {
 	}
 
 	evt := <-qrChan.(<-chan whatsmeow.QRChannelItem)
+	sessionCookie, err := req.Cookie("sessionid")
+	if err != nil {
+		callbackLog.Errorf("Failed to get request session id cookie:", err)
+		w.WriteHeader(400)
+		return
+	}
+
+	sessionID := sessionCookie.Value
+	user, ok := s.sessionToUser.Load(uuid.MustParse(sessionID))
+	if !ok {
+		callbackLog.Errorf("Failed to find sessionid in mapping")
+		w.WriteHeader(400)
+		return
+	}
+
+	client := user.(*User).WSClient
+	for _, name := range appstate.AllPatchNames {
+		err := client.FetchAppState(name, false, true)
+		if err != nil {
+			client.Log.Errorf("Failed to do initial fetch of app state %s: %v", name, err)
+		}
+	}
 
 	callbackLog.Debugf("evt: %+v", evt)
 	w.WriteHeader(200)
