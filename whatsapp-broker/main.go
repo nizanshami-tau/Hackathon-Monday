@@ -208,7 +208,7 @@ func (s *WhatsappService) QrCallback(w http.ResponseWriter, req *http.Request) {
 
 	client := user.(*User).WSClient
 	for _, name := range appstate.AllPatchNames {
-		err := client.FetchAppState(name, false, true)
+		err := client.FetchAppState(name, true, false)
 		if err != nil {
 			client.Log.Errorf("Failed to do initial fetch of app state %s: %v", name, err)
 		}
@@ -281,6 +281,8 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 		w.WriteHeader(500)
 		return
 	}
+
+	oauthLog.Errorf("CATCHE 6: %v", body)
 
 	query := url.Values{}
 	query.Set("status", "success")
