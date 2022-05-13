@@ -416,7 +416,7 @@ mutation {
 """
 `, g.Label),
 			})
-			userObj.WSClient.Log.Errorf("CATCHME 98 %+v", query)
+			userObj.WSClient.Log.Errorf("CATCHME 98 %+v", string(query))
 			if err != nil {
 				panic(err)
 			}
