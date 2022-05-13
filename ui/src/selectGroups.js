@@ -1,34 +1,49 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MultiSelect } from "react-multi-select-component";
-import groupsJson from "./groups.json";
-
-
-const groups = (json)=>{
-    let i;
-    let result = [];
-    let arr = JSON.parse(json).groups;
-    for(i = 0;i < arr.length;i++){
-        result.push({ "label": arr[i].name, "value": arr[i].name})
-    }
-
-    return result;
-}
-window.options = groups(groupsJson);
 
 const SelectGroups = () => {
+    const [submitting, setSubmitting] = useState(false);
     const [selected, setSelected] = useState([]);
+    const [groups, setGroups] = useState([]);
+    
+    const handleSubmit = async event => {
+        const response = await fetch('https://sunday.sviry.net/gosvc/choosegroup', {
+            method : 'POST',
+            Headers :{
+                'Content-Type': 'application/json'
+            },
+            body : JSON.stringify(selected)
+            });
+
+            window.location.href = "/loading.html";
+        
+    }
+    useEffect(() => {
+       fetchData();
+     }, []);
+    const fetchData = async () => {
+       let response = await (
+         await fetch("https://sunday.sviry.net/gosvc/listgroups")
+       ).json();
+       setGroups(response);
+     };
 
     return (
         <div>
             <h1>Select groups</h1>
             <pre>{JSON.stringify(selected)}</pre>
             <MultiSelect
-                options={window.options}
+                options={groups}
                 value={selected}
                 onChange={setSelected}
                 labelledBy="Select"
             />
+
+            <form onSubmit={handleSubmit}>
+                <button type="submit">Submit</button>
+            </form>
         </div>
+        
     );
 };
 

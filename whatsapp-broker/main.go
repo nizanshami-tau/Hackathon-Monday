@@ -9,12 +9,16 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/appstate"
+	"go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"io"
 	"net/http"
 	"net/url"
 	"os/exec"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -22,13 +26,16 @@ import (
 
 // const DB_PATH string = "/var/local/whatsapp-broker/app.db"
 const DB_PATH string = "/tmp/myapp.db"
-const REDIRECT_PATH string = "https://sunday.sviry.net/gosvc"
+const SVC_PREFIX string = "/gosvc"
+const REDIRECT_PATH string = "https://sunday.sviry.net" + SVC_PREFIX
 const CLIENT_ID string = "63096c5c98c7077e0a8db84a4a21b299"
 const CLIENT_SECRET string = "90d0e45f578ec3d092c4806674dd4033"
 
 type User struct {
-	AccessToken string
-	WSClient    *whatsmeow.Client
+	AccessToken       string
+	WSClient          *whatsmeow.Client
+	Conversations     []*proto.Conversation
+	ConversationsLock sync.Mutex
 }
 
 type WhatsappService struct {
@@ -67,11 +74,21 @@ func (s *WhatsappService) SendWhatsappQR(w http.ResponseWriter, req *http.Reques
 	user, ok := s.sessionToUser.Load(uuid.MustParse(sessionID))
 	if !ok {
 		clientLog.Errorf("Failed to find sessionid in mapping")
-		w.WriteHeader(500)
+		w.WriteHeader(400)
 		return
 	}
 
 	client := whatsmeow.NewClient(deviceStore, clientLog)
+	client.AddEventHandler(func(evt interface{}) {
+		client.Log.Infof("CATCHME 4 %v", reflect.TypeOf(evt))
+		if hs, ok := evt.(*events.HistorySync); ok {
+			u := user.(*User)
+			u.ConversationsLock.Lock()
+			defer u.ConversationsLock.Unlock()
+			u.Conversations = append(u.Conversations, hs.Data.Conversations...)
+			client.Log.Infof("CATCHME 3 saved %d conversations", len(hs.Data.Conversations))
+		}
+	})
 
 	qrCtx, _ := context.WithTimeout(context.Background(), 60*time.Second)
 	qrChan, _ := client.GetQRChannel(qrCtx)
@@ -129,17 +146,17 @@ func (s *WhatsappService) SendWhatsappQR(w http.ResponseWriter, req *http.Reques
 	</body>
 	<script>
 		async function subscribe() {
-			let response = await fetch("/qr-callback?id=%s");
+			let response = await fetch("/gosvc/qr-callback?id=%s");
 			if (response.status != 200) {
 				console.log(response.statusText);
 			} else {
-				window.location.replace("/foobar?id=%s");
+				window.location.replace("/");
 			}
 		}
 		subscribe();
 	</script>
 </html>`,
-			imgBuf.String(), id.String(), id.String())))
+			imgBuf.String(), id.String())))
 
 		return
 	} else {
@@ -174,19 +191,44 @@ func (s *WhatsappService) QrCallback(w http.ResponseWriter, req *http.Request) {
 	}
 
 	evt := <-qrChan.(<-chan whatsmeow.QRChannelItem)
+	sessionCookie, err := req.Cookie("sessionid")
+	if err != nil {
+		callbackLog.Errorf("Failed to get request session id cookie:", err)
+		w.WriteHeader(400)
+		return
+	}
+
+	sessionID := sessionCookie.Value
+	user, ok := s.sessionToUser.Load(uuid.MustParse(sessionID))
+	if !ok {
+		callbackLog.Errorf("Failed to find sessionid in mapping")
+		w.WriteHeader(400)
+		return
+	}
+
+	client := user.(*User).WSClient
+	for _, name := range appstate.AllPatchNames {
+		err := client.FetchAppState(name, true, false)
+		if err != nil {
+			client.Log.Errorf("Failed to do initial fetch of app state %s: %v", name, err)
+		}
+	}
+
 	callbackLog.Debugf("evt: %+v", evt)
 	w.WriteHeader(200)
 	return
 }
 
 func (s *WhatsappService) Start(w http.ResponseWriter, req *http.Request) {
-	//startLog := waLog.Stdout("Start", "DEBUG", true)
+	startLog := waLog.Stdout("Start", "DEBUG", true)
 	cookie := "abcd12345"
 
 	query := url.Values{}
 	query.Set("client_id", CLIENT_ID)
 	query.Set("redirect_uri", REDIRECT_PATH+"/oauth/callback")
 	query.Set("state", cookie)
+
+	startLog.Infof("CATCHME 1 %+v", query)
 
 	url := "https://auth.monday.com/oauth2/authorize?" + query.Encode()
 	w.Header().Set("Set-Cookie", fmt.Sprintf("monday_auth_state=%s", cookie))
@@ -211,6 +253,7 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 	form.Add("client_id", CLIENT_ID)
 	form.Add("client_secret", CLIENT_SECRET)
 	form.Add("code", code)
+	oauthLog.Infof("CATCHME 2 %+v", form)
 	resp, err := http.PostForm("https://auth.monday.com/oauth2/token", form)
 	if err != nil {
 		oauthLog.Errorf("Monday auth returned error: %v", err)
@@ -239,6 +282,8 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 		return
 	}
 
+	oauthLog.Errorf("CATCHE 6: %+v", body)
+
 	query := url.Values{}
 	query.Set("status", "success")
 	query.Set("access_token", body.AccessToken)
@@ -255,10 +300,320 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 		AccessToken: body.AccessToken,
 	})
 
-	w.Header().Set("Set-Cookie", fmt.Sprintf("sessionid=%s", sessionID.String()))
+	w.Header().Set("Set-Cookie", fmt.Sprintf("sessionid=%s; path=/", sessionID.String()))
 	url := REDIRECT_PATH + "/whatsapp-qr?" //+ query.Encode()
 	w.Header().Set("Location", url)
 	w.WriteHeader(302)
+}
+
+type GroupOption struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
+}
+
+func (s *WhatsappService) ListGroups(w http.ResponseWriter, req *http.Request) {
+	listGroupsLog := waLog.Stdout("ListGroups", "DEBUG", true)
+	sessionCookie, err := req.Cookie("sessionid")
+	if err != nil {
+		listGroupsLog.Errorf("Failed to get request session id cookie:", err)
+		w.WriteHeader(400)
+		return
+	}
+
+	sessionID := sessionCookie.Value
+	user, ok := s.sessionToUser.Load(uuid.MustParse(sessionID))
+	if !ok {
+		listGroupsLog.Errorf("Failed to find sessionid in mapping")
+		w.WriteHeader(400)
+		return
+	}
+
+	client := user.(*User).WSClient
+	groups, err := client.GetJoinedGroups()
+	if err != nil {
+		listGroupsLog.Errorf("Failed to fetch groups: %v", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	options := make([]GroupOption, len(groups))
+	for i, group := range groups {
+		options[i] = GroupOption{
+			Label: group.Name,
+			Value: group.Topic,
+		}
+	}
+
+	groupsJSON, err := json.Marshal(options)
+	if err != nil {
+		listGroupsLog.Errorf("Failed to fetch groups: %v", err)
+		w.WriteHeader(500)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	w.Write(groupsJSON)
+}
+
+type Data struct {
+	Data CreateBoard `json:"data"`
+}
+
+type CreateBoard struct {
+	CreateBoard GroupID `json:"create_board"`
+}
+
+type GroupID struct {
+	Id string `json:"id"`
+}
+
+func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request) {
+	chooseGroupsLog := waLog.Stdout("ChooseGroups", "DEBUG", true)
+	sessionCookie, err := req.Cookie("sessionid")
+	if err != nil {
+		chooseGroupsLog.Errorf("Failed to get request session id cookie:", err)
+		w.WriteHeader(400)
+		return
+	}
+
+	sessionID := sessionCookie.Value
+	user, ok := s.sessionToUser.Load(uuid.MustParse(sessionID))
+	if !ok {
+		chooseGroupsLog.Errorf("Failed to find sessionid in mapping")
+		w.WriteHeader(400)
+		return
+	}
+
+	bodyBytes, err := io.ReadAll(req.Body)
+	if err != nil {
+		chooseGroupsLog.Errorf("Failed to read request body")
+		w.WriteHeader(500)
+		return
+	}
+
+	var groups []GroupOption
+	err = json.Unmarshal(bodyBytes, &groups)
+	if err != nil {
+		chooseGroupsLog.Errorf("Failed to unmarshal request body: %v %s", err, string(bodyBytes))
+		w.WriteHeader(500)
+		return
+	}
+
+	msgArr := make([]*proto.HistorySyncMsg, 0)
+	userObj := user.(*User)
+	userObj.ConversationsLock.Lock()
+	defer userObj.ConversationsLock.Unlock()
+	for _, c := range userObj.Conversations {
+		for _, g := range groups {
+			if c.Name != nil && *c.Name == g.Label {
+				for _, m := range c.Messages {
+					msgArr = append(msgArr, m)
+				}
+			}
+		}
+	}
+
+	go func() {
+		for _, g := range groups {
+			query, err := json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_board (board_name: "%s", board_kind: public) {
+        id
+    }
+}
+`, g.Label),
+			})
+			userObj.WSClient.Log.Errorf("CATCHME 98 %+v", string(query))
+			if err != nil {
+				panic(err)
+			}
+			req, err := http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			bodyBytes, err := io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
+
+			var result Data
+			err = json.Unmarshal(bodyBytes, &result)
+			if err != nil {
+				panic(err)
+			}
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_group (board_id: %s, group_name: "Exercises") {
+        id
+    }
+}
+`, result.Data.CreateBoard.Id),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			bodyBytes, err = io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_group (board_id: %s, group_name: "Tests") {
+        id
+    }
+}
+`, result.Data.CreateBoard.Id),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			bodyBytes, err = io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_group (board_id: %s, group_name: "Tirgulim") {
+        id
+    }
+}
+`, result.Data.CreateBoard.Id),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+			bodyBytes, err = io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation {
+    create_group (board_id: %s, group_name: "Lectures") {
+        id
+    }
+}
+`, result.Data.CreateBoard.Id),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			query, err = json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
+mutation{
+  create_column(board_id: %s, title:"Files", description: "files", column_type:file) {
+    id
+    title
+    description 
+  }
+}
+`, result.Data.CreateBoard.Id),
+			})
+			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
+
+			req.Header.Set("Authorization", userObj.AccessToken)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
+
+			resp, err = http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			for _, m := range msgArr {
+				userObj.WSClient.Log.Errorf("CATCHME 101 %+v", m)
+				//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
+				//if err == nil {
+				//	m.Message.Message.ImageMessage.
+				//		chooseGroupsLog.Infof("CATCHME 5 %+v", data)
+				//}
+			}
+		}
+	}()
 }
 
 func main() {
@@ -268,10 +623,12 @@ func main() {
 	}
 
 	public := http.NewServeMux()
-	public.HandleFunc("/whatsapp-qr", s.SendWhatsappQR)
-	public.HandleFunc("/qr-callback", s.QrCallback)
-	public.HandleFunc("/start", s.Start)
-	public.HandleFunc("/oauth/callback", s.OAuthCallback)
+	public.HandleFunc(SVC_PREFIX+"/whatsapp-qr", s.SendWhatsappQR)
+	public.HandleFunc(SVC_PREFIX+"/qr-callback", s.QrCallback)
+	public.HandleFunc(SVC_PREFIX+"/start", s.Start)
+	public.HandleFunc(SVC_PREFIX+"/oauth/callback", s.OAuthCallback)
+	public.HandleFunc(SVC_PREFIX+"/listgroups", s.ListGroups)
+	public.HandleFunc(SVC_PREFIX+"/choosegroup", s.ChooseGroups)
 
 	http.ListenAndServe(":3000", public)
 }

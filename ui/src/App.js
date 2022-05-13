@@ -6,6 +6,7 @@ import SelectGroups from './selectGroups.js';
 function App() {
   return (
     <SelectGroups className = "App"/>
+    
   );
 }
 
