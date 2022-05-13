@@ -387,6 +387,7 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	msgArr := make([]*proto.HistorySyncMsg, 0)
 	userObj := user.(*User)
 	userObj.ConversationsLock.Lock()
 	defer userObj.ConversationsLock.Unlock()
@@ -394,9 +395,18 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 		for _, g := range groups {
 			if c.Name != nil && *c.Name == g.Label {
 				for _, m := range c.Messages {
-					chooseGroupsLog.Infof("CATCHME 5 %+v", m)
+					msgArr = append(msgArr, m)
 				}
 			}
+		}
+	}
+
+	chooseGroupsLog.Infof("CATCHME 5 found %+v messages", len(msgArr))
+
+	for _, m := range msgArr {
+		data, err := userObj.WSClient.DownloadAny(m.Message.Message)
+		if err == nil {
+			chooseGroupsLog.Infof("CATCHME 5 %+v", data)
 		}
 	}
 }
