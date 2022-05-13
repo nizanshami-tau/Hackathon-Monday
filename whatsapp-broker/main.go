@@ -401,14 +401,43 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 		}
 	}
 
-	chooseGroupsLog.Infof("CATCHME 5 found %+v messages", len(msgArr))
+	go func() {
+		for _, g := range groups {
+			query := fmt.Sprintf(`
+"""
+mutation {
+    create_board (board_name: "%s", board_kind: public) {
+        id
+    }
+}
+"""
+`, g.Label)
+			req, err := http.NewRequest("POST", "https://api.monday.com/v2", strings.NewReader(query))
+			if err != nil {
+				panic(err)
+			}
 
-	for _, m := range msgArr {
-		data, err := userObj.WSClient.DownloadAny(m.Message.Message)
-		if err == nil {
-			chooseGroupsLog.Infof("CATCHME 5 %+v", data)
+			req.Header.Set("Authorization", userObj.AccessToken)
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			bodyBytes, err := io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
 		}
-	}
+		for _, m := range msgArr {
+			//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
+			if err == nil {
+				chooseGroupsLog.Infof("CATCHME 5 %+v", data)
+			}
+		}
+	}()
 }
 
 func main() {
