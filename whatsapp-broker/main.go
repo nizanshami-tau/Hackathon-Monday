@@ -403,7 +403,10 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 
 	go func() {
 		for _, g := range groups {
-			query := fmt.Sprintf(`
+			query, err := json.Marshal(struct {
+				Query string `json:"query"`
+			}{
+				Query: fmt.Sprintf(`
 """
 mutation {
     create_board (board_name: "%s", board_kind: public) {
@@ -411,8 +414,12 @@ mutation {
     }
 }
 """
-`, g.Label)
-			req, err := http.NewRequest("POST", "https://api.monday.com/v2", strings.NewReader(query))
+`, g.Label),
+			})
+			if err != nil {
+				panic(err)
+			}
+			req, err := http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
 			if err != nil {
 				panic(err)
 			}
