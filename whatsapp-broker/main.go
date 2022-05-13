@@ -427,6 +427,7 @@ mutation {
 
 			req.Header.Set("Authorization", userObj.AccessToken)
 			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
