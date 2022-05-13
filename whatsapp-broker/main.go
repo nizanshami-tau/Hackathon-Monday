@@ -615,12 +615,14 @@ mutation{
 				if err == nil {
 					fname := filepath.Base(m.Message.MediaData.GetLocalPath())
 					groupID := "exercises"
-					if strings.Contains(fname, "מבחן") {
+					if strings.Contains(fname, "sol") {
+						groupID = "exercises"
+					} else if m.Message.Message.ImageMessage != nil  {
 						groupID = "tests"
-					} else if strings.Contains(fname, "תרגול") {
+					} else if strings.Contains(fname, "2020") {
+						groupID = "tests"
+					} else if strings.Contains(fname, "practice") {
 						groupID = "tirgul"
-					} else if strings.Contains(fname, "שיעור") {
-						groupID = "lectures"
 					}
 					chooseGroupsLog.Infof("CATCHME 5 %+v", data)
 					ioutil.WriteFile(file.Name()+"/"+fname, data, 0600)
