@@ -603,11 +603,15 @@ mutation{
 			if err != nil {
 				panic(err)
 			}
-			//for _, m := range msgArr {
-			//	//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
-			//	if err == nil {
-			//		chooseGroupsLog.Infof("CATCHME 5 %+v", data)
-			//	}
+
+			for _, m := range msgArr {
+				userObj.WSClient.Log.Errorf("CATCHME 101 %+v", m)
+				//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
+				//if err == nil {
+				//	m.Message.Message.ImageMessage.
+				//		chooseGroupsLog.Infof("CATCHME 5 %+v", data)
+				//}
+			}
 		}
 	}()
 }
