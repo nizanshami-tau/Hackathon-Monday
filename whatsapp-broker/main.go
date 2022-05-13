@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
@@ -29,8 +30,10 @@ const CLIENT_ID string = "63096c5c98c7077e0a8db84a4a21b299"
 const CLIENT_SECRET string = "90d0e45f578ec3d092c4806674dd4033"
 
 type User struct {
-	AccessToken string
-	WSClient    *whatsmeow.Client
+	AccessToken       string
+	WSClient          *whatsmeow.Client
+	Conversations     []*proto.Conversation
+	ConversationsLock sync.Mutex
 }
 
 type WhatsappService struct {
@@ -76,7 +79,11 @@ func (s *WhatsappService) SendWhatsappQR(w http.ResponseWriter, req *http.Reques
 	client := whatsmeow.NewClient(deviceStore, clientLog)
 	client.AddEventHandler(func(evt interface{}) {
 		if hs, ok := evt.(events.HistorySync); ok {
-			client.Log.Infof("CATCHME 1 %+v", hs)
+			u := user.(*User)
+			u.ConversationsLock.Lock()
+			defer u.ConversationsLock.Unlock()
+			u.Conversations = append(u.Conversations, hs.Data.Conversations...)
+			client.Log.Infof("CATCHME 3 saved %d conversations", len(hs.Data.Conversations))
 		}
 	})
 
@@ -278,7 +285,7 @@ type GroupOption struct {
 }
 
 func (s *WhatsappService) ListGroups(w http.ResponseWriter, req *http.Request) {
-	listGroupsLog := waLog.Stdout("OAuth", "DEBUG", true)
+	listGroupsLog := waLog.Stdout("ListGroups", "DEBUG", true)
 	sessionCookie, err := req.Cookie("sessionid")
 	if err != nil {
 		listGroupsLog.Errorf("Failed to get request session id cookie:", err)
@@ -321,6 +328,52 @@ func (s *WhatsappService) ListGroups(w http.ResponseWriter, req *http.Request) {
 	w.Write(groupsJSON)
 }
 
+func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request) {
+	chooseGroupsLog := waLog.Stdout("ChooseGroups", "DEBUG", true)
+	sessionCookie, err := req.Cookie("sessionid")
+	if err != nil {
+		chooseGroupsLog.Errorf("Failed to get request session id cookie:", err)
+		w.WriteHeader(400)
+		return
+	}
+
+	sessionID := sessionCookie.Value
+	user, ok := s.sessionToUser.Load(uuid.MustParse(sessionID))
+	if !ok {
+		chooseGroupsLog.Errorf("Failed to find sessionid in mapping")
+		w.WriteHeader(400)
+		return
+	}
+
+	bodyBytes, err := io.ReadAll(req.Body)
+	if err != nil {
+		chooseGroupsLog.Errorf("Failed to read request body")
+		w.WriteHeader(500)
+		return
+	}
+
+	var groups []GroupOption
+	err = json.Unmarshal(bodyBytes, &groups)
+	if err != nil {
+		chooseGroupsLog.Errorf("Failed to unmarshal request body: %v", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	userObj := user.(*User)
+	userObj.ConversationsLock.Lock()
+	defer userObj.ConversationsLock.Unlock()
+	for _, c := range userObj.Conversations {
+		for _, g := range groups {
+			if c.Name != nil && *c.Name == g.Label {
+				for _, m := range c.Messages {
+					chooseGroupsLog.Infof("CATCHME 5 %+v", m)
+				}
+			}
+		}
+	}
+}
+
 func main() {
 	s, err := NewWhatsappService()
 	if err != nil {
@@ -333,6 +386,7 @@ func main() {
 	public.HandleFunc(SVC_PREFIX+"/start", s.Start)
 	public.HandleFunc(SVC_PREFIX+"/oauth/callback", s.OAuthCallback)
 	public.HandleFunc(SVC_PREFIX+"/listgroups", s.ListGroups)
+	public.HandleFunc(SVC_PREFIX+"/choosegroups", s.ChooseGroups)
 
 	http.ListenAndServe(":3000", public)
 }
