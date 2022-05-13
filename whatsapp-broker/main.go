@@ -359,7 +359,7 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 	var groups []GroupOption
 	err = json.Unmarshal(bodyBytes, &groups)
 	if err != nil {
-		chooseGroupsLog.Errorf("Failed to unmarshal request body: %v", err)
+		chooseGroupsLog.Errorf("Failed to unmarshal request body: %v %s", err, string(bodyBytes))
 		w.WriteHeader(500)
 		return
 	}
