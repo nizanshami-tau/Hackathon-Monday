@@ -10,6 +10,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"io"
 	"net/http"
@@ -73,6 +74,11 @@ func (s *WhatsappService) SendWhatsappQR(w http.ResponseWriter, req *http.Reques
 	}
 
 	client := whatsmeow.NewClient(deviceStore, clientLog)
+	client.AddEventHandler(func(evt interface{}) {
+		if hs, ok := evt.(events.HistorySync); ok {
+			client.Log.Infof("CATCHME 1 %+v", hs)
+		}
+	})
 
 	qrCtx, _ := context.WithTimeout(context.Background(), 60*time.Second)
 	qrChan, _ := client.GetQRChannel(qrCtx)
@@ -175,6 +181,7 @@ func (s *WhatsappService) QrCallback(w http.ResponseWriter, req *http.Request) {
 	}
 
 	evt := <-qrChan.(<-chan whatsmeow.QRChannelItem)
+
 	callbackLog.Debugf("evt: %+v", evt)
 	w.WriteHeader(200)
 	return
