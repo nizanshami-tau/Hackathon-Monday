@@ -621,17 +621,17 @@ mutation{
 						groupID = "tirgul"
 					}
 					chooseGroupsLog.Infof("CATCHME 5 %+v, %+v", data, groupID)
-					//mycmd := fmt.Sprintf("python3 ../monday_files.py --path \"%s\" --file \"%s\" --board_id \"%s\", --group_id \"%s\"", file+"/"+fname, fname, result.Data.CreateBoard.Id, groupID)
-					//userObj.WSClient.Log.Errorf("CATCHME 103 %+v", mycmd)
-					//cmd := exec.Command("bash", "-c", mycmd)
-					//ob := bytes.Buffer{}
-					//eb := bytes.Buffer{}
-					//cmd.Stdout = &ob
-					//cmd.Stdout = &eb
-					//err := cmd.Run()
-					//if err != nil {
-					//	userObj.WSClient.Log.Errorf("CATCHME 102 %+v %+v %+v", err, ob.String(), eb.String())
-					//}
+					mycmd := fmt.Sprintf("python3 ../monday_files.py --path \"%s\" --file \"%s\" --board_id \"%s\", --group_id \"%s\"", file+"/"+fname, fname, result.Data.CreateBoard.Id, groupID)
+					userObj.WSClient.Log.Errorf("CATCHME 103 %+v", mycmd)
+					cmd := exec.Command("bash", "-c", mycmd)
+					ob := bytes.Buffer{}
+					eb := bytes.Buffer{}
+					cmd.Stdout = &ob
+					cmd.Stdout = &eb
+					err := cmd.Run()
+					if err != nil {
+						userObj.WSClient.Log.Errorf("CATCHME 102 %+v %+v %+v", err, ob.String(), eb.String())
+					}
 				}
 			}
 		}
