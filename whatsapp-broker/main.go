@@ -282,7 +282,7 @@ func (s *WhatsappService) OAuthCallback(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	oauthLog.Errorf("CATCHE 6: %v", body)
+	oauthLog.Errorf("CATCHE 6: %+v", body)
 
 	query := url.Values{}
 	query.Set("status", "success")
@@ -357,7 +357,6 @@ func (s *WhatsappService) ListGroups(w http.ResponseWriter, req *http.Request) {
 
 func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request) {
 	chooseGroupsLog := waLog.Stdout("ChooseGroups", "DEBUG", true)
-	chooseGroupsLog.Infof("FOOOOOO")
 	sessionCookie, err := req.Cookie("sessionid")
 	if err != nil {
 		chooseGroupsLog.Errorf("Failed to get request session id cookie:", err)
@@ -365,7 +364,6 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	chooseGroupsLog.Infof("FOOOOOO")
 	sessionID := sessionCookie.Value
 	user, ok := s.sessionToUser.Load(uuid.MustParse(sessionID))
 	if !ok {
@@ -374,7 +372,6 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	chooseGroupsLog.Infof("FOOOOOO")
 	bodyBytes, err := io.ReadAll(req.Body)
 	if err != nil {
 		chooseGroupsLog.Errorf("Failed to read request body")
@@ -382,7 +379,6 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	chooseGroupsLog.Infof("FOOOOOO")
 	var groups []GroupOption
 	err = json.Unmarshal(bodyBytes, &groups)
 	if err != nil {
@@ -391,14 +387,16 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	chooseGroupsLog.Infof("FOOOOOO")
 	userObj := user.(*User)
 	userObj.ConversationsLock.Lock()
 	defer userObj.ConversationsLock.Unlock()
 	for _, c := range userObj.Conversations {
-		chooseGroupsLog.Infof("FOOOOOO B")
-		for _, m := range c.Messages {
-			chooseGroupsLog.Infof("CATCHME 5 %+v", m)
+		for _, g := range groups {
+			if c.Name != nil && *c.Name == g.Label {
+				for _, m := range c.Messages {
+					chooseGroupsLog.Infof("CATCHME 5 %+v", m)
+				}
+			}
 		}
 	}
 }
