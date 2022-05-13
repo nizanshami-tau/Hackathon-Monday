@@ -626,7 +626,9 @@ mutation{
 					}
 					chooseGroupsLog.Infof("CATCHME 5 %+v", data)
 					ioutil.WriteFile(file+"/"+fname, data, 0600)
-					cmd := exec.Command("python3", "../monday_files.py", "--path", file+"/"+fname, "--file", fname, "--board-id", result.Data.CreateBoard.Id, "--group-id", groupID)
+					mycmd := fmt.Sprintf("python3 ../monday_files.py --path \"%s\" --file \"%s\" --board_id \"%s\", --group_id \"%s\"", file+"/"+fname, fname, result.Data.CreateBoard.Id, groupID)
+					userObj.WSClient.Log.Errorf("CATCHME 103 %+v", mycmd)
+					cmd := exec.Command("bash", "-c", mycmd)
 					ob := bytes.Buffer{}
 					eb := bytes.Buffer{}
 					cmd.Stdout = &ob
