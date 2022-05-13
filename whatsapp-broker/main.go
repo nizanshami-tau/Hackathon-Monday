@@ -407,13 +407,11 @@ func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request)
 				Query string `json:"query"`
 			}{
 				Query: fmt.Sprintf(`
-"""
 mutation {
     create_board (board_name: "%s", board_kind: public) {
         id
     }
 }
-"""
 `, g.Label),
 			})
 			userObj.WSClient.Log.Errorf("CATCHME 98 %+v", string(query))
