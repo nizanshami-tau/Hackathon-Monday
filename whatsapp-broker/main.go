@@ -355,6 +355,18 @@ func (s *WhatsappService) ListGroups(w http.ResponseWriter, req *http.Request) {
 	w.Write(groupsJSON)
 }
 
+type Data struct {
+	Data CreateBoard `json:"data"`
+}
+
+type CreateBoard struct {
+	CreateBoard GroupID `json:"create_board"`
+}
+
+type GroupID struct {
+	Id int `json:"id"`
+}
+
 func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request) {
 	chooseGroupsLog := waLog.Stdout("ChooseGroups", "DEBUG", true)
 	sessionCookie, err := req.Cookie("sessionid")
@@ -439,9 +451,7 @@ mutation {
 
 			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
 
-			var result struct {
-				ID int `json:"id"`
-			}
+			var result Data
 			err = json.Unmarshal(bodyBytes, &result)
 			if err != nil {
 				panic(err)
@@ -456,7 +466,7 @@ mutation {
         id
     }
 }
-`, result.ID),
+`, result.Data.CreateBoard.Id),
 			})
 			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
 			if err != nil {
@@ -488,7 +498,7 @@ mutation {
         id
     }
 }
-`, result.ID),
+`, result.Data.CreateBoard.Id),
 			})
 			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
 			if err != nil {
@@ -510,73 +520,7 @@ mutation {
 			}
 
 			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
-
-			query, err = json.Marshal(struct {
-				Query string `json:"query"`
-			}{
-				Query: fmt.Sprintf(`
-mutation {
-    create_group (board_id: %d, group_name: "Exercises") {
-        id
-    }
-}
-`, result.ID),
-			})
-			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
-			if err != nil {
-				panic(err)
-			}
-
-			req.Header.Set("Authorization", userObj.AccessToken)
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
-
-			resp, err = http.DefaultClient.Do(req)
-			if err != nil {
-				panic(err)
-			}
-
-			bodyBytes, err = io.ReadAll(resp.Body)
-			if err != nil {
-				panic(err)
-			}
-
-			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
-			userObj.WSClient.Log.Errorf("CATCHME 100 %+v", result)
-
-			query, err = json.Marshal(struct {
-				Query string `json:"query"`
-			}{
-				Query: fmt.Sprintf(`
-mutation {
-    create_group (board_id: %d, group_name: "Tests") {
-        id
-    }
-}
-`, result.ID),
-			})
-			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
-			if err != nil {
-				panic(err)
-			}
-
-			req.Header.Set("Authorization", userObj.AccessToken)
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(query)))
-
-			resp, err = http.DefaultClient.Do(req)
-			if err != nil {
-				panic(err)
-			}
-
-			bodyBytes, err = io.ReadAll(resp.Body)
-			if err != nil {
-				panic(err)
-			}
-
-			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
-
-
+			
 			query, err = json.Marshal(struct {
 				Query string `json:"query"`
 			}{
@@ -586,7 +530,7 @@ mutation {
         id
     }
 }
-`, result.ID),
+`, result.Data.CreateBoard.Id),
 			})
 			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
 			if err != nil {
@@ -607,7 +551,6 @@ mutation {
 			}
 
 			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
-
 
 			query, err = json.Marshal(struct {
 				Query string `json:"query"`
@@ -618,7 +561,7 @@ mutation {
         id
     }
 }
-`, result.ID),
+`, result.Data.CreateBoard.Id),
 			})
 			req, err = http.NewRequest("POST", "https://api.monday.com/v2", bytes.NewReader(query))
 			if err != nil {
@@ -633,11 +576,11 @@ mutation {
 			if err != nil {
 				panic(err)
 			}
-		//for _, m := range msgArr {
-		//	//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
-		//	if err == nil {
-		//		chooseGroupsLog.Infof("CATCHME 5 %+v", data)
-		//	}
+			//for _, m := range msgArr {
+			//	//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
+			//	if err == nil {
+			//		chooseGroupsLog.Infof("CATCHME 5 %+v", data)
+			//	}
 		}
 	}()
 }
