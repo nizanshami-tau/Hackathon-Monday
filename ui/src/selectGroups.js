@@ -15,7 +15,7 @@ const SelectGroups = () => {
             body : selected
             });
 
-            window.location.replace("/loading.html");
+            window.location.href = "/loading.html";
         
     }
     useEffect(() => {
