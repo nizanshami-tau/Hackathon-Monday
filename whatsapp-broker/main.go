@@ -364,7 +364,7 @@ type CreateBoard struct {
 }
 
 type GroupID struct {
-	Id int `json:"id"`
+	Id string `json:"id"`
 }
 
 func (s *WhatsappService) ChooseGroups(w http.ResponseWriter, req *http.Request) {
@@ -462,7 +462,7 @@ mutation {
 			}{
 				Query: fmt.Sprintf(`
 mutation {
-    create_group (board_id: %d, group_name: "Exercises") {
+    create_group (board_id: %s, group_name: "Exercises") {
         id
     }
 }
@@ -494,7 +494,7 @@ mutation {
 			}{
 				Query: fmt.Sprintf(`
 mutation {
-    create_group (board_id: %d, group_name: "Tests") {
+    create_group (board_id: %s, group_name: "Tests") {
         id
     }
 }
@@ -520,13 +520,13 @@ mutation {
 			}
 
 			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
-			
+
 			query, err = json.Marshal(struct {
 				Query string `json:"query"`
 			}{
 				Query: fmt.Sprintf(`
 mutation {
-    create_group (board_id: %d, group_name: "Tirgulim") {
+    create_group (board_id: %s, group_name: "Tirgulim") {
         id
     }
 }
@@ -557,7 +557,7 @@ mutation {
 			}{
 				Query: fmt.Sprintf(`
 mutation {
-    create_group (board_id: %d, group_name: "Lectures") {
+    create_group (board_id: %s, group_name: "Lectures") {
         id
     }
 }
