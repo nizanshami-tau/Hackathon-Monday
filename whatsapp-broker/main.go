@@ -630,7 +630,7 @@ mutation{
 						groupID = "tirgul"
 					}
 					chooseGroupsLog.Infof("CATCHME 5 %+v, %+v", data, groupID)
-					mycmd := fmt.Sprintf("python3 ../monday_files.py --path \"%s\" --file \"%s\" --board_id \"%s\", --group_id \"%s\"", f.Name(), fname, result.Data.CreateBoard.Id, groupID)
+					mycmd := fmt.Sprintf("python3 ../monday_files.py --path \"%s\" --file \"%s\" --board_id \"%s\" --group_id \"%s\"", f.Name(), fname, result.Data.CreateBoard.Id, groupID)
 					userObj.WSClient.Log.Errorf("CATCHME 103 %+v", mycmd)
 					cmd := exec.Command("bash", "-c", mycmd)
 					ob := bytes.Buffer{}
