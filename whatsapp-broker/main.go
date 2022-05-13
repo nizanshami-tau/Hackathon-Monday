@@ -386,7 +386,7 @@ func main() {
 	public.HandleFunc(SVC_PREFIX+"/start", s.Start)
 	public.HandleFunc(SVC_PREFIX+"/oauth/callback", s.OAuthCallback)
 	public.HandleFunc(SVC_PREFIX+"/listgroups", s.ListGroups)
-	public.HandleFunc(SVC_PREFIX+"/choosegroups", s.ChooseGroups)
+	public.HandleFunc(SVC_PREFIX+"/choosegroup", s.ChooseGroups)
 
 	http.ListenAndServe(":3000", public)
 }
