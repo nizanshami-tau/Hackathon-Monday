@@ -15,9 +15,12 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -604,13 +607,26 @@ mutation{
 				panic(err)
 			}
 
+			file, err := ioutil.TempFile("dir", "prefix")
+			defer os.Remove(file.Name())
+
 			for _, m := range msgArr {
-				userObj.WSClient.Log.Errorf("CATCHME 101 %+v", m)
-				//data, err := userObj.WSClient.DownloadAny(m.Message.Message)
-				//if err == nil {
-				//	m.Message.Message.ImageMessage.
-				//		chooseGroupsLog.Infof("CATCHME 5 %+v", data)
-				//}
+				data, err := userObj.WSClient.DownloadAny(m.Message.Message)
+				if err == nil {
+					fname := filepath.Base(m.Message.MediaData.GetLocalPath())
+					groupID := "exercises"
+					if strings.Contains(fname, "מבחן") {
+						groupID = "tests"
+					} else if strings.Contains(fname, "תרגול") {
+						groupID = "tirgul"
+					} else if strings.Contains(fname, "שיעור") {
+						groupID = "lectures"
+					}
+					chooseGroupsLog.Infof("CATCHME 5 %+v", data)
+					ioutil.WriteFile(file.Name()+"/"+fname, data, 0600)
+					cmd := exec.Command("python", "../monday_files.py", "--path", file.Name()+"/"+fname, "--file", fname, "--board-id", result.Data.CreateBoard.Id, "--group-id", groupID)
+					cmd.Run()
+				}
 			}
 		}
 	}()
