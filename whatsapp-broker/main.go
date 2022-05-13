@@ -637,7 +637,7 @@ mutation{
 					eb := bytes.Buffer{}
 					cmd.Stdout = &ob
 					cmd.Stderr = &eb
-					err := cmd.Run()
+					err = cmd.Run()
 					if err != nil {
 						userObj.WSClient.Log.Errorf("CATCHME 102 %+v %+v %+v", err, ob.String(), eb.String())
 					}
