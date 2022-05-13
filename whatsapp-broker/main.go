@@ -472,6 +472,13 @@ mutation {
 				panic(err)
 			}
 
+			bodyBytes, err = io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
+
 			query, err = json.Marshal(struct {
 				Query string `json:"query"`
 			}{
@@ -496,6 +503,13 @@ mutation {
 			if err != nil {
 				panic(err)
 			}
+
+			bodyBytes, err = io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
 
 			query, err = json.Marshal(struct {
 				Query string `json:"query"`
@@ -522,6 +536,14 @@ mutation {
 				panic(err)
 			}
 
+			bodyBytes, err = io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
+			userObj.WSClient.Log.Errorf("CATCHME 100 %+v", result)
+
 			query, err = json.Marshal(struct {
 				Query string `json:"query"`
 			}{
@@ -547,6 +569,14 @@ mutation {
 				panic(err)
 			}
 
+			bodyBytes, err = io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
+
+
 			query, err = json.Marshal(struct {
 				Query string `json:"query"`
 			}{
@@ -571,6 +601,13 @@ mutation {
 			if err != nil {
 				panic(err)
 			}
+			bodyBytes, err = io.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			userObj.WSClient.Log.Errorf("CATCHME 99 %+v %+v", resp, string(bodyBytes))
+
 
 			query, err = json.Marshal(struct {
 				Query string `json:"query"`
