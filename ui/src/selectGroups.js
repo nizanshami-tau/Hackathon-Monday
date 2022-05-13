@@ -6,13 +6,17 @@ const SelectGroups = () => {
     const [selected, setSelected] = useState([]);
     const [groups, setGroups] = useState([]);
     
-    const handleSubmit = event => {
-        event.preventDefault();
-       setSubmitting(true);
-    
-       setTimeout(() => {
-         setSubmitting(false);
-       }, 3000)
+    const handleSubmit = async event => {
+        const response = await fetch('https://sunday.sviry.net/gosvc/choosegroup', {
+            method : 'POST',
+            Headers :{
+                'Content-Type': 'application/json'
+            },
+            body : selected
+            });
+
+            window.location.replace("/loading.html");
+        
     }
     useEffect(() => {
        fetchData();
